@@ -11,6 +11,8 @@ Encoding but simpler than LZSS (another simple CODEC with a better compression
 ratio than LZP). The virtues of this CODEC are its simplicity and speed,
 compression ratio is not one of them.
 
+The library is presented is a [Head Only Library](https://en.wikipedia.org/wiki/Header-only).
+
 The way this CODEC works is that it either outputs a literal byte or it 
 outputs a byte from a model based off of previously seen characters in a
 dictionary. 
@@ -66,4 +68,21 @@ The hash used is often a weak one and can be experimented with. The hash
 `hash = (hash << 4) ^ next_byte` is commonly used, and it mixes in new
 data with the old. 4 bits are discarded, 4 bits are exclusively old, 4 bits
 exclusively new, and 4 bits are are mixture of both old and new bytes.
+
+## API
+
+The library is structured as a header only library, as mentioned, it should
+compile cleanly as C++. There are three exported functions and one structure.
+
+The functions are `lzp_encode`, `lzp_decode` and `lzp_hash`. 
+
+## BUGS AND LIMITATIONS
+
+The input and output byte length counts are `unsigned long` values, which may
+be 32-bit or 64-bit depending on your platform and compiler. 
+
+## RETURN VALUE
+
+The program returns zero on success and non-zero on failure.
+
 
