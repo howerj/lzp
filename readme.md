@@ -76,13 +76,57 @@ compile cleanly as C++. There are three exported functions and one structure.
 
 The functions are `lzp_encode`, `lzp_decode` and `lzp_hash`. 
 
+	typedef struct {
+		unsigned char model[LZP_MODEL_SIZE]; /* predictor model */
+		int (*get)(void *in);           /* like getchar */
+		int (*put)(void *out, int ch);  /* like putchar */
+		unsigned short (*hash)(unsigned short hash, unsigned char b); /* predictor */
+		void *in, *out; /* passed to `get` and `put` respectively */
+		unsigned long icnt, ocnt; /* input and output byte count respectively */
+	} lzp_t;
+
+The structure requires more explanation than the functions, once the structure
+has been set up it is trivial to call `lzp_encode` or `lzp_decode`. The
+functions are:
+
+	unsigned short lzp_hash(unsigned short h, unsigned char b);
+	int lzp_encode(lzp_t *l);
+	int lzp_decode(lzp_t *l);
+
+`lzp_hash` is the default hash function, it can be used to populate the
+`hash` field in `lzp_t`.
+
+The function pointers in `lzp_t` called `get` and `put` are used to read and
+write a single character respectively, `in` and `out` (which will usually be
+FILE pointers) are passed to `get` and `put`. They are analogues of `fgetc` and
+`fputc`.
+
+There are also some macros, which can be defined by the user (they are
+surrounded by `#ifndef` clauses).
+
+	#define LZP_EXTERN extern /* applied to API function prototypes */
+	#define LZP_API /* applied to all exported API functions */
+	#define LZP_MODEL (0)
+	#define LZP_MODEL_BITS (16)
+
+And a derived macro which you should not change.
+
+	#define LZP_MODEL_SIZE (1 << LZP_MODEL_BITS)
+
+## DICTIONARY PRELOAD
+
+It is possible to preload the dictionary with a model, this may improve
+the compression ration, especially if the workload statistics are known in
+advance.
+
 ## BUGS AND LIMITATIONS
 
 The input and output byte length counts are `unsigned long` values, which may
-be 32-bit or 64-bit depending on your platform and compiler. 
+be 32-bit or 64-bit depending on your platform and compiler, if reading more
+than 4GiB of data on a platform with 32-bit `long` types then this will
+overflow.
 
 ## RETURN VALUE
 
-The program returns zero on success and non-zero on failure.
-
+The (example) program returns zero on success and non-zero on failure.
 

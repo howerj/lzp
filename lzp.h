@@ -38,8 +38,8 @@ typedef struct {
 } lzp_t;
 
 LZP_EXTERN unsigned short lzp_hash(unsigned short h, unsigned char b);
-LZP_EXTERN int lzp_encode(lzp_t *l);
-LZP_EXTERN int lzp_decode(lzp_t *l);
+LZP_EXTERN int lzp_encode(lzp_t *l); /* returns negative on failure */
+LZP_EXTERN int lzp_decode(lzp_t *l); /* returns negative on failure */
 
 #ifdef LZP_IMPLEMENTATION
 
@@ -63,9 +63,9 @@ LZP_API int lzp_encode(lzp_t *l) {
 			if ((c = l->get(l->in)) < 0)
 				break;
 			l->icnt++;
-			if (c == model[hash]) {
+			if (c == model[hash]) { /* Match found, set control bit */
 				mask |= 1 << i;
-			} else {
+			} else { /* No match, update model */
 				model[hash] = c;
 				buf[j++] = c;
 			}
@@ -124,14 +124,14 @@ static int lzp_put(void *out, int ch) { return fputc(ch, (FILE*)out); }
 int main(int argc, char **argv) {
 	int r = 0;
 	lzp_t lzp = { 
-		.model = { 0, }, 
-		.get = lzp_get, 
-		.put = lzp_put, 
-		.hash = lzp_hash, 
-		.in = stdin, 
-		.out = stdout, 
-		.icnt = 0,
-		.ocnt = 0,
+		.model = { 0, }, /* you could load in a custom model */
+		.get   = lzp_get, 
+		.put   = lzp_put, 
+		.hash  = lzp_hash, 
+		.in    = stdin, 
+		.out   = stdout, 
+		.icnt  = 0,
+		.ocnt  = 0,
 	};
 	char ibuf[8192], obuf[8192];
 	lzp_binary(stdin);
@@ -145,6 +145,7 @@ int main(int argc, char **argv) {
 	if (fprintf(stderr, "in  bytes %ld\nout bytes %ld\nratio     %.3f%%\n", 
 		lzp.icnt, lzp.ocnt, 100.* (double)lzp.ocnt / (double)lzp.icnt) < 0)
 		r = -1;
+	if (fflush(stdout) < 0) r = -1; /* `obuf` does not persist after `main` exits, when fflush is called by the run time */
 	return r != 0 ? 2 : 0;
 usage:
 	(void)fprintf(stderr, 
