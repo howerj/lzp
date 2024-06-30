@@ -1,6 +1,8 @@
 *.bin
+*.dec
 *.exe
 *.lzp
 *.orig
 *.txt
 lzp
+lzpd

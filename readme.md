@@ -99,7 +99,8 @@ functions are:
 The function pointers in `lzp_t` called `get` and `put` are used to read and
 write a single character respectively, `in` and `out` (which will usually be
 FILE pointers) are passed to `get` and `put`. They are analogues of `fgetc` and
-`fputc`.
+`fputc`. Custom functions can be written to read and write to arbitrary
+locations including memory.
 
 There are also some macros, which can be defined by the user (they are
 surrounded by `#ifndef` clauses).
@@ -109,15 +110,25 @@ surrounded by `#ifndef` clauses).
 	#define LZP_MODEL (0)
 	#define LZP_MODEL_BITS (16)
 
-And a derived macro which you should not change.
+And a derived macro which you should not change:
 
 	#define LZP_MODEL_SIZE (1 << LZP_MODEL_BITS)
+
+If you use an N-bit hash (up to 16-bits) then you can and should reduce the 
+size of the model by setting `LZP_MODEL_BITS`. This is done automatically for
+the built in models, if they are used.
+
+There are comments about LZP that hint that using a "better" hash function 
+(one that is better in the sense that it mixes its input better) will produce
+better compression, from (minimal) testing this has been shown to not be the
+case. It is often better to use a weak hash or even an identity function.
 
 ## DICTIONARY PRELOAD
 
 It is possible to preload the dictionary with a model, this may improve
 the compression ration, especially if the workload statistics are known in
-advance.
+advance. This can be done by populating the model table, the same values
+should be used both for compression and decompression.
 
 ## BUGS AND LIMITATIONS
 

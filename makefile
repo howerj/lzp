@@ -13,7 +13,6 @@ test run: lzp
 
 lzp: lzp.c lzp.h
 
-
 lzp.1: readme.md
 
 clean:

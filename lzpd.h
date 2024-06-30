@@ -130,6 +130,27 @@ static inline void lzp_binary(FILE *f) { (void)(f); }
 
 static int lzp_get(void *in) { return fgetc((FILE*)in); }
 static int lzp_put(void *out, int ch) { return fputc(ch, (FILE*)out); }
+static int lzp_put_null(void *out, int ch) { (void)(out); return ch; }
+
+static int lzp_model_save(lzp_t *l, FILE *out) {
+	assert(l);
+	assert(out);
+	for (int i = 0; i < LZP_MODEL_SIZE; i++)
+		if (fprintf(out, "%d\n", (int)(short)l->model[i]) < 0)
+			return -1;
+	return 0;
+}
+
+static int lzp_model_load(lzp_t *l, FILE *in) {
+	assert(l);
+	assert(in);
+	for (int i = 0, d = 0; i < LZP_MODEL_SIZE; i++) {
+		if (fscanf(in, "%d,", &d) < 0) /* optional comma */
+			return -1;
+		l->model[i] = d;
+	}
+	return 0;
+}
 
 int main(int argc, char **argv) {
 	int r = 0;
@@ -148,10 +169,20 @@ int main(int argc, char **argv) {
 	lzp_binary(stdout);
 	if (setvbuf(stdin,  ibuf, _IOFBF, sizeof (ibuf))) return 1;
 	if (setvbuf(stdout, obuf, _IOFBF, sizeof (obuf))) return 1;
-	if (argc != 2) goto usage;
-	if      (!strcmp(argv[1], "-c")) r = lzp_encode(&lzp);
-	else if (!strcmp(argv[1], "-d")) r = lzp_decode(&lzp);
-	else goto usage;
+	if (argc == 3 && (!strcmp(argv[1], "-C") || !strcmp(argv[1], "-D"))) {
+		FILE *f = fopen(argv[2], "rb");
+		if (!f) { (void)fprintf(stderr, "Unable to open file '%s' for reading", argv[2]); return 1; }
+		if (lzp_model_load(&lzp, f) < 0) r = -1;
+		if (fclose(f) < 0) r = -1;
+		if (!strcmp(argv[1], "-C")) r = lzp_encode(&lzp); else r = lzp_decode(&lzp);
+	} else if (argc == 2) {
+		if      (!strcmp(argv[1], "-c")) { r = lzp_encode(&lzp); }
+		else if (!strcmp(argv[1], "-d")) { r = lzp_decode(&lzp); }
+		else if (!strcmp(argv[1], "-m")) { lzp.put = lzp_put_null; r = lzp_encode(&lzp); if (r >= 0) r = lzp_model_save(&lzp, stdout); }
+		else goto usage;
+	} else {
+		goto usage;
+	}
 	if (fprintf(stderr, "in  bytes %ld\nout bytes %ld\nratio     %.3f%%\n", 
 		lzp.icnt, lzp.ocnt, 100. * (double)lzp.ocnt / (double)lzp.icnt) < 0)
 		r = -1;
@@ -159,12 +190,13 @@ int main(int argc, char **argv) {
 	return r != 0 ? 2 : 0;
 usage:
 	(void)fprintf(stderr, 
-		"Usage:   %s -[cd]\n"
+		"Usage:   %s -c|-d|-m|-C MODEL|-D MODEL\n"
+		"Flags:   Model=%u/Bits=%u\n"
 		"Project: " LZP_PROJECT "\n" 
 		"Author:  " LZP_AUTHOR  "\n" 
 		"Email:   " LZP_EMAIL   "\n" 
 		"Repo:    " LZP_REPO    "\n" 
-		"License: " LZP_LICENSE "\n", argv[0]);
+		"License: " LZP_LICENSE "\n", argv[0], LZP_MODEL, LZP_MODEL_BITS);
 	return 1;
 }
 #endif
